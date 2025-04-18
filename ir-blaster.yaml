@@ -1,0 +1,78 @@
+
+esphome:
+  name: ir-blaster
+# Include IRremoteESP8266 as a library
+  min_version: 2025.2.2
+  build_path: build/ir-blaster
+  libraries:
+  - IRremoteESP8266@2.8.6
+
+esp8266:
+  board: d1_mini
+
+external_components:
+  - source: "./custom_components"
+
+logger:
+api:
+ota:
+  platform: esphome
+# WiFi configuration
+wifi:
+  ssid: "your ssid"
+  password: "your wifi password"
+  ap:
+    ssid: "IR-Blaster-Fallback"
+    password: "fallback_password"
+
+
+remote_transmitter:
+  id: ir_tx
+  pin: 4
+  carrier_duty_percent: 50%
+
+climate:
+  - platform: samsung_ac_climate
+    name: Room Samsung AC
+    transmitter_id: ir_tx
+    transmitter_pin: 4 
+    turbo_support: true
+    id: samsung_ac
+
+fan:
+  - platform: template
+    name: "Panasonic Fan"
+    speed_count: 3
+    id: my_fan
+    on_turn_on:
+      - remote_transmitter.transmit_panasonic:
+          address: 0x4004
+          command: 0xB210C8C # Replace with actual ON code
+    on_turn_off:
+      - remote_transmitter.transmit_panasonic:
+          address: 0x4004
+          command: 0xB210C8C # Replace with actual ON code
+    on_speed_set:
+      then:
+        - if:
+            condition:
+              lambda: 'return x == 1;'  # FAN_SPEED_LOW
+            then:
+              - remote_transmitter.transmit_panasonic:
+                  address: 0x4004
+                  command: 0x100B1BC
+        - if:
+            condition:
+              lambda: 'return x == 2;'  # FAN_SPEED_MEDIUM
+            then:
+              - remote_transmitter.transmit_panasonic:
+                  address: 0x4004
+                  command: 0x100B2BC
+        - if:
+            condition:
+              lambda: 'return x == 3;'  # FAN_SPEED_HIGH
+            then:
+              - remote_transmitter.transmit_panasonic:
+                  address: 0x4004
+                  command: 0x100B3BC   
+     
